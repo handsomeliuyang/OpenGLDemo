@@ -1,0 +1,147 @@
+//
+//  shaders_class.cpp
+//  OpenGLDemo
+//
+//  Created by ly on 2019/7/2.
+//  Copyright © 2019 ly. All rights reserved.
+//
+
+#include "shaders_class.hpp"
+#include "./shaders_s.hpp"
+
+namespace shaders_class {
+    // 定义常量
+    const unsigned int SCR_WIDTH = 800;
+    const unsigned int SCR_HEIGHT = 600;
+    
+//    const char *vertexShaderSource = "#version 330 core\n"
+//    "layout (location = 0) in vec3 aPos;\n"    // create input vertex variable
+//    "layout (location = 1) in vec3 aColor;\n" // create input color variable
+//    "out vec3 ourColor;\n"
+//    "void main()\n"
+//    "{\n"
+//    "   gl_Position = vec4(aPos, 1.0);\n" // Assign a value to the predefined variable gl_Position, gl_Position is the output of this Shader
+//    "   ourColor = aColor;\n"
+//    "}\0";
+//
+//    const char *fragmentShaderSource = "#version 330 core\n"
+//    "in vec3 ourColor;\n"
+//    "out vec4 FragColor;\n" // create a out variable of type vec4
+//    "void main()\n"
+//    "{\n"
+//    "   FragColor = vec4(ourColor, 1.0f);\n"
+//    "}\n\0";
+    
+    int main(int argc, const char * argv[]) {
+        
+        // 创建GLFW
+        glfwInit();
+        // 配置GLFW：主版本号(Major)为3
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        // 配置GLFW：次版本号(Minor)为3
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        // 配置GLFW：使用核心模式(Core-profile)
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        
+        // 经过测试，在macOS-10.14.1版本里，此句句柄不能添加
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+        
+        // 创建窗口
+        GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+        if (window == NULL){
+            std::cout << "Failed to create GLFW window" << std::endl;
+            glfwTerminate();
+            return -1;
+        }
+        glfwMakeContextCurrent(window);
+        // 监听GLFW的窗口变化
+        glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+        
+        // 在调用OpenGL Api之前，需要通过GLAD初始化函数指针
+        if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
+            std::cout << "Failed to initialize GLAD" << std::endl;
+            return -1;
+        }
+        
+        // build and compile out shader program
+        // ------------------------------------
+        Shader ourShader("/Users/ly/liuyang/workspace_opengl/OpenGLDemo/OpenGLDemo/shaders/3.3.shader.vs", "/Users/ly/liuyang/workspace_opengl/OpenGLDemo/OpenGLDemo/shaders/3.3.shader.fs");
+        
+        // set up vertex data and buffer and configure vertex attributes
+        // -------------------------------------------------------------
+        // 3D coordinates, using one-dimensional array storage
+        float vertices[] = {
+            0.0f,  0.5f, 0.0f,  1.0f, 0.0f, 0.0f,
+            -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,
+            0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f
+        };
+        
+        // Create VAO(Vertex Array Object), VBO(Vertex Buffer Object), EBO(Index Buffer Object)
+        // VAO automatically associates VBO and EBO
+        unsigned int VAO, VBO;
+        glGenVertexArrays(1, &VAO);
+        glGenBuffers(1, &VBO);
+        
+        // When using OpenGL to draw graphics, use vertex array objects, vertex array object associate vertex buffer object and vertex attributes
+        glBindVertexArray(VAO);
+        
+        // binds a vertex buffer object to array buffer type
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        // stores vertex data in initialized memory bound to vertex buffer object
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+        
+        // vertex attribute
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
+        glEnableVertexAttribArray(0);
+        // color attribute
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+        glEnableVertexAttribArray(1);
+        
+        // safely unbind
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+        
+        // sets the polygon rasterization mode of how OpenGL should draw its primitives.
+        //        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        
+        // Render Loop
+        while(!glfwWindowShouldClose(window)){
+            // input
+            processInput(window);
+            
+            // Clear the screen with specified color
+            glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+            
+            // Using a shader program
+//            glUseProgram(shaderProgram);
+            ourShader.use();
+            // bind the vertex array object
+            glBindVertexArray(VAO);
+            // Draw a triangle using a vertex array object
+            glDrawArrays(GL_TRIANGLES, 0, 3);
+            
+            // 交换缓存，调用事件
+            glfwSwapBuffers(window);
+            glfwPollEvents();
+        }
+        
+        glDeleteVertexArrays(1, &VAO);
+        glDeleteBuffers(1, &VBO);
+        
+        glfwTerminate();
+        return 0;
+    }
+    
+    void framebuffer_size_callback(GLFWwindow* window, int width, int height){
+        // 设置视口，前两个参数设置左下角的位置
+        glViewport(0, 0, width, height);
+    }
+    
+    void processInput(GLFWwindow *window){
+        // 点击返回按钮后，关闭窗口
+        if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){
+            glfwSetWindowShouldClose(window, true);
+        }
+    }
+}
